@@ -25,56 +25,110 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 
 # Try to import Flask & extensions
-try:
-    from flask import Flask, jsonify, request
-    from flask_cors import CORS
-    from flask_socketio import SocketIO, emit
-except ImportError:
-    print("[*] Required packages not found. Attempting automatic installation...", file=sys.stderr)
-    try:
+def robust_dependency_check():
+    import sys
+    import subprocess
+    import platform
+    
+    deps_import_map = {
+        "flask": "flask",
+        "flask-cors": "flask_cors",
+        "flask-socketio": "flask_socketio",
+        "werkzeug": "werkzeug"
+    }
+    missing = []
+    
+    for pip_name, import_name in deps_import_map.items():
+        try:
+            __import__(import_name)
+        except ImportError:
+            missing.append(pip_name)
+            
+    if missing:
+        print(f"[*] Missing packages: {', '.join(missing)}. Attempting strict installation...", file=sys.stderr)
         # Ensure pip is available
         subprocess.call([sys.executable, "-m", "ensurepip", "--default-pip"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        deps = ["flask", "flask-cors", "flask-socketio", "werkzeug"]
+        install_commands = [
+            [sys.executable, "-m", "pip", "install", "--quiet"] + missing,
+            [sys.executable, "-m", "pip", "install", "--quiet", "--user"] + missing,
+            [sys.executable, "-m", "pip", "install", "--quiet", "--break-system-packages"] + missing,
+            [sys.executable, "-m", "pip", "install", "--quiet", "--user", "--break-system-packages"] + missing
+        ]
         
-        # 1. Try standard user install
-        if subprocess.call([sys.executable, "-m", "pip", "install", "--user"] + deps, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
-            # 2. Try with --break-system-packages (for newer Linux distros like Ubuntu 23+ / Debian 12+)
-            if subprocess.call([sys.executable, "-m", "pip", "install", "--break-system-packages"] + deps, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
-                # 3. Fallback for Debian/Ubuntu apt-get
-                if platform.system() == "Linux":
-                    try:
-                        subprocess.call(["sudo", "-n", "apt-get", "update", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        subprocess.call(["sudo", "-n", "apt-get", "install", "-y", "python3-flask", "python3-flask-cors", "python3-flask-socketio", "python3-pip", "python3-werkzeug"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        subprocess.call([sys.executable, "-m", "pip", "install", "--break-system-packages"] + deps, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    except Exception:
-                        pass
+        success = False
+        for cmd in install_commands:
+            if subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                success = True
+                break
+                
+        if not success and platform.system() == "Linux":
+            # APT Fallback
+            try:
+                subprocess.call(["sudo", "-n", "apt-get", "update", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                apt_pkgs = []
+                for pkg in missing:
+                    apt_pkg = "python3-flask-cors" if pkg == "flask-cors" else "python3-flask-socketio" if pkg == "flask-socketio" else f"python3-{pkg}"
+                    apt_pkgs.append(apt_pkg)
+                if subprocess.call(["sudo", "-n", "apt-get", "install", "-y"] + apt_pkgs, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                    success = True
+            except Exception:
+                pass
+                
+        # Final Verification
+        still_missing = []
+        for pip_name, import_name in deps_import_map.items():
+            try:
+                __import__(import_name)
+            except ImportError:
+                still_missing.append(pip_name)
+                
+        if still_missing:
+            print(f"[-] FATAL: Failed to resolve dependencies: {', '.join(still_missing)}", file=sys.stderr)
+            print("[!] The program cannot continue. Please install them manually using:", file=sys.stderr)
+            print(f"    pip install {' '.join(still_missing)}", file=sys.stderr)
+            print("    (or use --break-system-packages / virtual environment / apt-get)", file=sys.stderr)
+            sys.exit(1)
+        else:
+            print("[+] Dependencies successfully resolved and installed.", file=sys.stderr)
 
-        from flask import Flask, jsonify, request
-        from flask_cors import CORS
-        from flask_socketio import SocketIO, emit
-        print("[+] Dependencies successfully installed.", file=sys.stderr)
+robust_dependency_check()
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from flask_socketio import SocketIO, emit
+
+
+
+def check_for_self_updates():
+    import urllib.request
+    import hashlib
+    import os
+    print("[*] Checking for updates from GitHub...")
+    url = "https://raw.githubusercontent.com/kookyei/Ph4NC0R3/main/p4nth0m_agent.py"
+    try:
+        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            latest_code = response.read()
+            
+        current_file = os.path.abspath(__file__)
+        with open(current_file, "rb") as f:
+            current_code = f.read()
+            
+        if hashlib.sha256(latest_code).hexdigest() != hashlib.sha256(current_code).hexdigest():
+            print("[!] Update found! Downloading and applying...")
+            with open(current_file, "wb") as f:
+                f.write(latest_code)
+            print("[+] Update applied successfully. Restarting agent...")
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        else:
+            print("[+] Agent is up to date.")
     except Exception as e:
-        print(f"[-] Failed to auto-install dependencies: {e}", file=sys.stderr)
-        print("[!] Please manually run: pip install flask flask-cors flask-socketio", file=sys.stderr)
-        sys.exit(1)
-
+        print(f"[-] Failed to check for updates: {e}")
 
 def check_dependencies_on_startup():
     print("[*] P4NTH0MC0R3 Initialization Sequence Initiated...")
-    print("[*] Validating system dependencies and fetching updates...")
-    deps = ["flask", "flask-cors", "flask-socketio", "werkzeug"]
-    try:
-        # We always attempt to upgrade/verify required dependencies.
-        cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "--quiet"] + deps
-        # Try standard install first
-        if subprocess.call(cmd) != 0:
-            # Fallback for systems that require --break-system-packages
-            subprocess.call(cmd + ["--break-system-packages"])
-        print("[+] Python dependency validation complete. All modules operational.")
-    except Exception as e:
-        print(f"[-] Python dependency check encountered an error: {e}")
-
+    
     print("[*] Verifying OS-level network interfaces and tools...")
     os_type = platform.system()
     missing_tools = []
@@ -91,7 +145,6 @@ def check_dependencies_on_startup():
     elif os_type == "Darwin":
         tools = ["networksetup", "airport"]
         for t in tools:
-            # airport is usually in /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport
             if t == "airport":
                 if subprocess.call("ls /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
                     missing_tools.append(t)
@@ -853,7 +906,7 @@ if __name__ == '__main__':
     # Start background scanning by default
     start_background_scan()
 
-    check_dependencies_on_startup()
+    check_for_self_updates()\n    check_dependencies_on_startup()
     
     # Print the local interface URL for the user
     dashboard_url = "http://localhost:5173"
