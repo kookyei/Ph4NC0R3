@@ -717,102 +717,12 @@ def serve_dashboard(path):
             return send_from_directory(dist_dir, 'index.html')
     else:
         return """
-        <html>
-        <head>
-            <title>P4NTH0MC0R3 - Telemetry Bridge Active</title>
-            <style>
-                body {
-                    background-color: #050505;
-                    color: #00ff66;
-                    font-family: 'JetBrains Mono', 'Fira Code', Monaco, monospace;
-                    padding: 40px;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    line-height: 1.6;
-                }
-                .container {
-                    border: 1px solid #00ff66;
-                    padding: 30px;
-                    border-radius: 8px;
-                    box-shadow: 0 0 20px rgba(0, 255, 102, 0.15);
-                    background-color: #0a0a0a;
-                }
-                h1 {
-                    color: #00ff66;
-                    margin-top: 0;
-                    border-bottom: 1px solid #00ff66;
-                    padding-bottom: 15px;
-                    font-size: 24px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-                .pulse {
-                    display: inline-block;
-                    width: 12px;
-                    height: 12px;
-                    background-color: #00ff66;
-                    border-radius: 50%;
-                    box-shadow: 0 0 10px #00ff66;
-                    animation: pulse-animation 2s infinite;
-                }
-                @keyframes pulse-animation {
-                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.7); }
-                    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 102, 0); }
-                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 102, 0); }
-                }
-                .highlight {
-                    color: #ffffff;
-                    background: rgba(0, 255, 102, 0.15);
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                }
-                .btn {
-                    display: inline-block;
-                    background-color: #00ff66;
-                    color: #050505;
-                    text-decoration: none;
-                    padding: 10px 20px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                    margin-top: 20px;
-                    transition: all 0.2s ease;
-                }
-                .btn:hover {
-                    background-color: #ffffff;
-                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-                }
-                .steps {
-                    margin-top: 25px;
-                    background: rgba(255, 255, 255, 0.03);
-                    padding: 20px;
-                    border-radius: 6px;
-                    border-left: 3px solid #00ff66;
-                }
-                .step-num {
-                    color: #ffffff;
-                    font-weight: bold;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1><span class="pulse"></span> P4NTH0MC0R3 LOCAL AGENT IS ACTIVE</h1>
-                <p>The <span class="highlight">Local Telemetry Bridge</span> is running successfully on port <span class="highlight">5000</span> and ready to stream real-time Wi-Fi signals.</p>
-                
-                <div class="steps">
-                    <h3>How to access the dashboard:</h3>
-                    <p><span class="step-num">Step 1:</span> Keep this terminal window open (do not close it).</p>
-                    <p><span class="step-num">Step 2:</span> Go to the P4NTH0MC0R3 Web Dashboard in your web browser.</p>
-                    <p><span class="step-num">Step 3:</span> The Web Dashboard will automatically establish a secure local connection to this bridge at <code class="highlight">http://127.0.0.1:5000</code> to view and command physical Wi-Fi scans.</p>
-                </div>
-
-                <p style="margin-top:20px; font-size:14px; color:#888;">
-                    Note: Since you are running only the Python script locally, you see this connection bridge status. The beautiful visual dashboard interface is served securely via your AI Studio app link or compiled web server.
-                </p>
-            </div>
-        </body>
-        </html>
+        <html><head><title>P4NTH0M Agent</title></head>
+        <body style="background:#0a0a0a; color:#00ffcc; font-family:monospace; padding:50px;">
+        <h2>P4NTH0MC0R3 AGENT IS ONLINE</h2>
+        <p>The API is running, but the compiled web dashboard was not found in the 'dist' directory.</p>
+        <p>To view the dashboard, either run the Node.js development server or compile the frontend using 'npm run build'.</p>
+        </body></html>
         """
 
 # API Endpoints
@@ -1013,11 +923,13 @@ if __name__ == '__main__':
     check_dependencies_on_startup()
     
     # Print the local interface URL for the user
+    dashboard_url = "http://localhost:5000"
     print("\n==========================================================================")
     print(" P4NTH0M_AGENT DEPLOYED & ACTIVE")
     print("==========================================================================")
     print(f" [*] Local Telemetry Bridge listening on: {args.host}:{args.port}")
-    print(" [!] ACTION REQUIRED: Return to the P4NTH0MC0R3 Web Dashboard in your browser.")
+    print(f" [+] Secure Dashboard Interface: {dashboard_url}")
+    print(" [!] ACTION REQUIRED: Click the link above to access the dashboard.")
     print("==========================================================================\n")
 
     # Disable flask output entirely
