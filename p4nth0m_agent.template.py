@@ -116,6 +116,241 @@ def check_dependencies_on_startup():
         print("[+] OS network toolchain is fully operational.")
     print("[+] Initialization sequence complete. Launching core engine...")
 
+def find_project_dir():
+    # 1. Check directory of this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.exists(os.path.join(script_dir, 'package.json')):
+        return script_dir
+    # 2. Check current working directory
+    if os.path.exists(os.path.join(os.getcwd(), 'package.json')):
+        return os.getcwd()
+    return None
+
+def check_node_npm():
+    print("[*] Detecting Node.js and npm installation...")
+    try:
+        node_ver = subprocess.check_output("node -v", shell=True, text=True, stderr=subprocess.PIPE).strip()
+        print(f"[+] Node.js detected: {node_ver}")
+    except Exception:
+        print("[-] Error: Node.js is not installed or not found in system PATH.")
+        print("[!] Please download and install Node.js (v24 recommended) from https://nodejs.org or via nvm.")
+        print("[!] Frontend management cannot continue.")
+        sys.exit(1)
+        
+    try:
+        npm_ver = subprocess.check_output("npm -v", shell=True, text=True, stderr=subprocess.PIPE).strip()
+        print(f"[+] npm detected: {npm_ver}")
+    except Exception:
+        print("[-] Error: npm is not installed or not found in system PATH.")
+        print("[!] Frontend management cannot continue.")
+        sys.exit(1)
+
+def is_dependencies_missing_or_out_of_date(project_dir):
+    node_modules_path = os.path.join(project_dir, 'node_modules')
+    if not os.path.exists(node_modules_path):
+        return True
+        
+    package_json_path = os.path.join(project_dir, 'package.json')
+    package_lock_path = os.path.join(project_dir, 'package-lock.json')
+    
+    try:
+        pkg_mtime = os.path.getmtime(package_json_path)
+        modules_mtime = os.path.getmtime(node_modules_path)
+        lock_mtime = os.path.getmtime(package_lock_path) if os.path.exists(package_lock_path) else 0
+        
+        if pkg_mtime > modules_mtime or lock_mtime > modules_mtime:
+            return True
+    except Exception:
+        return True
+        
+    return False
+
+def is_dist_missing_or_stale(project_dir):
+    dist_dir = os.path.join(project_dir, 'dist')
+    if not os.path.exists(dist_dir):
+        return True
+        
+    src_dir = os.path.join(project_dir, 'src')
+    if not os.path.exists(src_dir):
+        return False
+        
+    max_src_mtime = 0
+    for root, _, files in os.walk(src_dir):
+        for f in files:
+            fp = os.path.join(root, f)
+            try:
+                mtime = os.path.getmtime(fp)
+                if mtime > max_src_mtime:
+                    max_src_mtime = mtime
+            except Exception:
+                pass
+                
+    package_json_path = os.path.join(project_dir, 'package.json')
+    try:
+        pkg_mtime = os.path.getmtime(package_json_path)
+        if pkg_mtime > max_src_mtime:
+            max_src_mtime = pkg_mtime
+    except Exception:
+        pass
+        
+    dist_index = os.path.join(dist_dir, 'index.html')
+    if not os.path.exists(dist_index):
+        return True
+        
+    try:
+        dist_mtime = os.path.getmtime(dist_index)
+        return max_src_mtime > dist_mtime
+    except Exception:
+        return True
+
+def run_npm_command_with_autofix(cmd, project_dir, max_retries=1):
+    import shutil
+    print(f"[*] Running command: {cmd}")
+    
+    current_cmd = cmd
+    for attempt in range(1, max_retries + 2):
+        try:
+            result = subprocess.run(
+                current_cmd,
+                shell=True,
+                cwd=project_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                print(f"[+] Command succeeded: {current_cmd}")
+                return True
+                
+            print(f"[-] Command failed with exit code {result.returncode}: {current_cmd}")
+            print("--- STDOUT ---")
+            print(result.stdout or "(empty)")
+            print("--- STDERR ---")
+            print(result.stderr or "(empty)")
+            print("--------------")
+            
+            if attempt > max_retries:
+                break
+                
+            stdout_err = ((result.stdout or "") + "\\n" + (result.stderr or "")).lower()
+            print(f"[*] Diagnosing issue (Attempt {attempt} of {max_retries + 1})...")
+            
+            if "integrity" in stdout_err or "shasum" in stdout_err or "checksum" in stdout_err:
+                print("[!] Diagnostic: Cache integrity / checksum error detected.")
+                print("[*] Action: Cleaning npm cache and retrying...")
+                subprocess.run("npm cache clean --force", shell=True, cwd=project_dir)
+                
+            elif "peer" in stdout_err or "conflicting peer dependency" in stdout_err:
+                print("[!] Diagnostic: Conflicting peer dependencies detected.")
+                print("[*] Action: Retrying with --legacy-peer-deps...")
+                if "install" in current_cmd and "--legacy-peer-deps" not in current_cmd:
+                    current_cmd += " --legacy-peer-deps"
+                    
+            elif "node_modules" in stdout_err or "lockfile" in stdout_err or "enoent" in stdout_err:
+                print("[!] Diagnostic: Broken node_modules or stale lockfile detected.")
+                print("[*] Action: Deleting node_modules and package-lock.json to perform fresh install...")
+                node_modules_dir = os.path.join(project_dir, 'node_modules')
+                if os.path.exists(node_modules_dir):
+                    try:
+                        shutil.rmtree(node_modules_dir)
+                    except Exception as e:
+                        print(f"[!] Warning: Could not remove node_modules: {e}")
+                lock_file = os.path.join(project_dir, 'package-lock.json')
+                if os.path.exists(lock_file):
+                    try:
+                        os.remove(lock_file)
+                    except Exception as e:
+                        print(f"[!] Warning: Could not remove package-lock.json: {e}")
+                current_cmd = "npm install"
+                
+            else:
+                print("[!] Diagnostic: Unknown npm compilation or installation issue.")
+                print("[*] Action: Deleting node_modules, clearing npm cache, and trying a fresh install...")
+                node_modules_dir = os.path.join(project_dir, 'node_modules')
+                if os.path.exists(node_modules_dir):
+                    try:
+                        shutil.rmtree(node_modules_dir)
+                    except Exception as e:
+                        print(f"[!] Warning: Could not remove node_modules: {e}")
+                subprocess.run("npm cache clean --force", shell=True, cwd=project_dir)
+                current_cmd = "npm install"
+                
+            print(f"[*] Retrying with command: {current_cmd}...")
+            
+        except subprocess.TimeoutExpired:
+            print(f"[-] Command timed out: {current_cmd}")
+            if attempt > max_retries:
+                break
+            print("[*] Action: Retrying command...")
+            
+        except Exception as e:
+            print(f"[-] Unexpected execution error: {e}")
+            if attempt > max_retries:
+                break
+                
+    print(f"[-] FATAL: Failed to execute npm command successfully: {cmd}")
+    print("[!] Please resolve the npm issue manually and restart the agent.")
+    sys.exit(1)
+
+def manage_frontend_on_startup(debug_mode=False):
+    project_dir = find_project_dir()
+    if not project_dir:
+        print("[-] Error: 'package.json' was not found in the project root.")
+        print("[!] Skipping automated frontend management (fallback/inlined mode will be active).")
+        return
+
+    # 1. Detect Node.js and npm
+    check_node_npm()
+
+    # 2. Check and run npm install if dependencies are missing or out of date
+    if is_dependencies_missing_or_out_of_date(project_dir):
+        print("[*] Dependencies are missing or out of date. Running 'npm install'...")
+        run_npm_command_with_autofix("npm install", project_dir)
+    else:
+        print("[+] All frontend dependencies are up-to-date.")
+
+    # 3. Handle Development Mode vs Production Mode Build
+    if debug_mode:
+        print("[*] Running in Development Mode. Spawning dev server...")
+        try:
+            dev_process = subprocess.Popen(
+                "npm run dev",
+                shell=True,
+                cwd=project_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            state.dev_process = dev_process
+            
+            # Wait until dev server is ready (responds on port 3000)
+            import socket
+            dev_ready = False
+            start_time = time.time()
+            timeout = 45
+            print("[*] Waiting for frontend dev server to be ready on port 3000...")
+            while time.time() - start_time < timeout:
+                try:
+                    with socket.create_connection(("127.0.0.1", 3000), timeout=1):
+                        print("[+] Frontend development server is ready and responding on port 3000!")
+                        dev_ready = True
+                        break
+                except (socket.timeout, ConnectionRefusedError):
+                    time.sleep(1)
+            
+            if not dev_ready:
+                print("[!] Warning: Frontend dev server did not respond on port 3000 within 45 seconds.")
+        except Exception as e:
+            print(f"[-] Failed to spawn frontend dev server: {e}")
+    else:
+        # Check and run build if missing or stale
+        if is_dist_missing_or_stale(project_dir):
+            print("[*] Compiled frontend (dist) is missing or stale. Running 'npm run build'...")
+            run_npm_command_with_autofix("npm run build", project_dir)
+        else:
+            print("[+] Compiled frontend (dist) is up-to-date. Ready to serve.")
+
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
@@ -149,6 +384,7 @@ class AgentState:
         self.selected_adapter: Optional[str] = None
         self.started_at: datetime = datetime.now()
         self.action_in_progress: bool = False
+        self.dev_process: Optional[Any] = None
         self._lock = threading.Lock()
 
 state = AgentState()
@@ -922,17 +1158,44 @@ if __name__ == '__main__':
     if state.adapters:
         state.selected_adapter = state.adapters[0]['id']
 
+    # Manage frontend lifecycle automatically before launching the server
+    manage_frontend_on_startup(args.debug)
+
+    # Register exit handler to terminate background npm run dev if it was started
+    import atexit
+    def cleanup_dev_server():
+        if getattr(state, 'dev_process', None):
+            print("[*] Terminating frontend development server background process...")
+            try:
+                state.dev_process.terminate()
+                state.dev_process.wait(timeout=2)
+            except Exception:
+                pass
+    atexit.register(cleanup_dev_server)
+
     start_background_scan()
     check_dependencies_on_startup()
     
-    dashboard_url = "http://localhost:5000"
+    dashboard_url = f"http://localhost:{args.port}"
     print("\\n==========================================================================")
     print(" P4NTH0M_AGENT DEPLOYED & ACTIVE")
     print("==========================================================================")
     print(f" [*] Local Telemetry Bridge listening on: {args.host}:{args.port}")
-    print(f" [+] Secure Dashboard Interface: {dashboard_url}")
-    print(" [!] ACTION REQUIRED: Click the link above to access the dashboard.")
+    if args.debug:
+        print(f" [+] Secure Dashboard Interface (Dev Server): http://localhost:3000")
+    else:
+        print(f" [+] Secure Dashboard Interface: {dashboard_url}")
+    print(" [!] ACTION REQUIRED: Use the link above to access the dashboard.")
     print("==========================================================================\\n")
+
+    # Launch browser automatically unless requested otherwise
+    if not args.no_browser:
+        target_url = "http://localhost:3000" if args.debug else dashboard_url
+        def open_browser():
+            time.sleep(1.5)
+            print(f"[*] Opening dashboard in default web browser: {target_url}")
+            webbrowser.open(target_url)
+        threading.Thread(target=open_browser, daemon=True).start()
 
     import sys
     cli = sys.modules['flask.cli']
