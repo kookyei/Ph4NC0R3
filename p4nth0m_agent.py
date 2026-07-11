@@ -25,6 +25,61 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 
 # Try to import Flask & extensions
+# ------------------------------------------------------------
+# Self Update Check & Robust Injector
+# ------------------------------------------------------------
+def check_for_self_updates():
+    import urllib.request
+    import hashlib
+    import os
+    import sys
+    print("[*] Checking for updates from GitHub...")
+    url = "https://raw.githubusercontent.com/kookyei/Ph4NC0R3/main/p4nth0m_agent.py"
+    try:
+        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            latest_code_bytes = response.read()
+            
+        latest_code = latest_code_bytes.decode('utf-8', errors='ignore')
+        
+        # Landmark to split on
+        landmark = "# Configuration"
+        if landmark not in latest_code:
+            landmark = "DEFAULT_SCAN_INTERVAL"
+            
+        if landmark in latest_code:
+            # We split the remote code from the landmark onwards
+            parts = latest_code.split(landmark, 1)
+            remote_app_logic = landmark + parts[1]
+            
+            # Read our current file to get the setup block (everything before landmark)
+            current_file = os.path.abspath(__file__)
+            with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
+                current_full_code = f.read()
+                
+            current_setup_block = current_full_code.split(landmark, 1)[0]
+            
+            # Reconstruct the advanced code
+            advanced_code = current_setup_block + remote_app_logic
+            
+            # If the current local file is different from the reconstructed advanced code, update it!
+            if hashlib.sha256(advanced_code.encode('utf-8')).hexdigest() != hashlib.sha256(current_full_code.encode('utf-8')).hexdigest():
+                print("[!] Update found! Downloading and applying with robust enhancements...")
+                with open(current_file, "w", encoding="utf-8") as f:
+                    f.write(advanced_code)
+                print("[+] Update applied successfully. Restarting agent...")
+                os.execv(sys.executable, [sys.executable] + sys.argv)
+            else:
+                print("[+] Agent is up to date.")
+        else:
+            print("[-] Remote update format not recognized. Skipping update.")
+    except Exception as e:
+        print(f"[-] Failed to check for updates: {e}")
+
+if __name__ == '__main__':
+    check_for_self_updates()
+
+
 def robust_dependency_check():
     import sys
     import subprocess
@@ -99,32 +154,6 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 
 
-
-def check_for_self_updates():
-    import urllib.request
-    import hashlib
-    import os
-    print("[*] Checking for updates from GitHub...")
-    url = "https://raw.githubusercontent.com/kookyei/Ph4NC0R3/main/p4nth0m_agent.py"
-    try:
-        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            latest_code = response.read()
-            
-        current_file = os.path.abspath(__file__)
-        with open(current_file, "rb") as f:
-            current_code = f.read()
-            
-        if hashlib.sha256(latest_code).hexdigest() != hashlib.sha256(current_code).hexdigest():
-            print("[!] Update found! Downloading and applying...")
-            with open(current_file, "wb") as f:
-                f.write(latest_code)
-            print("[+] Update applied successfully. Restarting agent...")
-            os.execv(sys.executable, [sys.executable] + sys.argv)
-        else:
-            print("[+] Agent is up to date.")
-    except Exception as e:
-        print(f"[-] Failed to check for updates: {e}")
 
 def check_dependencies_on_startup():
     print("[*] P4NTH0MC0R3 Initialization Sequence Initiated...")
@@ -906,7 +935,7 @@ if __name__ == '__main__':
     # Start background scanning by default
     start_background_scan()
 
-    check_for_self_updates()\n    check_dependencies_on_startup()
+    check_dependencies_on_startup()
     
     # Print the local interface URL for the user
     dashboard_url = "http://localhost:5173"
