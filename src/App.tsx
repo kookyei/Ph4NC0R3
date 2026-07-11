@@ -721,18 +721,57 @@ export default function App() {
                       
                       <div className="relative pl-8 pb-8">
                         <div className="absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,65,0.8)] ring-4 ring-black"></div>
-                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_1: DEPENDENCIES</h3>
-                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Ensure Python 3 is installed, then install required telemetry packages.</p>
-                        <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-sm text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] flex items-center gap-3 overflow-x-auto">
-                          <ArrowRight size={14} className="text-neon-green shrink-0 animate-pulse" />
-                          <span className="whitespace-nowrap">pip install flask flask-cors flask-socketio</span>
+                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_1: NODE.JS SETUP (VIA NVM)</h3>
+                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Download, install and activate Node.js v24 environment on your local machine.</p>
+                        
+                        <div className="space-y-3">
+                          <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-xs text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] relative group">
+                            <div className="flex justify-between items-center mb-1 text-[10px] text-neon-green/50 font-bold tracking-wider">
+                              <span>1. DOWNLOAD & INSTALL NVM</span>
+                            </div>
+                            <span className="block text-neon-blue whitespace-pre-wrap select-all">curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash</span>
+                          </div>
+
+                          <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-xs text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] relative group">
+                            <div className="flex justify-between items-center mb-1 text-[10px] text-neon-green/50 font-bold tracking-wider">
+                              <span>2. ACTIVATE NVM WITHOUT SHELL RESTART</span>
+                            </div>
+                            <span className="block text-neon-blue select-all">. "$HOME/.nvm/nvm.sh"</span>
+                          </div>
+
+                          <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-xs text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] relative group">
+                            <div className="flex justify-between items-center mb-1 text-[10px] text-neon-green/50 font-bold tracking-wider">
+                              <span>3. INSTALL NODE V24 & VERIFY VERSIONS</span>
+                            </div>
+                            <span className="block text-neon-blue whitespace-pre-wrap select-all">nvm install 24 && node -v && npm -v</span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="relative pl-8 pb-8">
                         <div className="absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,65,0.8)] ring-4 ring-black"></div>
-                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_2: DEPLOY_SCRIPT</h3>
-                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Save and execute the agent script on your target machine.</p>
+                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_2: PYTHON DEPENDENCIES</h3>
+                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Ensure Python 3 is installed, then install required telemetry packages.</p>
+                        <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-sm text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] flex items-center gap-3 overflow-x-auto">
+                          <ArrowRight size={14} className="text-neon-green shrink-0 animate-pulse" />
+                          <span className="whitespace-nowrap select-all">pip install flask flask-cors flask-socketio werkzeug</span>
+                        </div>
+                      </div>
+
+                      <div className="relative pl-8 pb-8">
+                        <div className="absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,65,0.8)] ring-4 ring-black"></div>
+                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_3: COMPILATION & EMBEDDING</h3>
+                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Compile the offline dashboard frontend and inline/embed it directly into the agent script.</p>
+                        <div className="bg-black border border-neon-green/30 rounded-xl p-4 font-mono text-sm text-white shadow-[inset_0_0_20px_rgba(0,255,65,0.05)] flex items-center gap-3 overflow-x-auto">
+                          <ArrowRight size={14} className="text-neon-green shrink-0 animate-pulse" />
+                          <span className="whitespace-nowrap select-all">npm install && npm run build</span>
+                        </div>
+                      </div>
+
+                      <div className="relative pl-8 pb-8">
+                        <div className="absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,65,0.8)] ring-4 ring-black"></div>
+                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_4: DOWNLOAD AGENT SCRIPT</h3>
+                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Save or download the compiled standalone agent executable script.</p>
                         
                         <div className="border border-neon-green/30 rounded-xl overflow-hidden bg-black shadow-[0_0_20px_rgba(0,255,65,0.05)]">
                           <div className="bg-neon-green/10 border-b border-neon-green/30 px-4 py-3 flex items-center justify-between">
@@ -766,8 +805,8 @@ export default function App() {
 
                       <div className="relative pl-8">
                         <div className="absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,65,0.8)] ring-4 ring-black"></div>
-                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_3: EXECUTION</h3>
-                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Run the agent script. Dependencies are auto-installed. The dashboard will connect automatically via WebSockets.</p>
+                        <h3 className="text-sm font-bold tracking-widest text-neon-green font-mono uppercase mb-3">PHASE_5: EXECUTION & ACCESS</h3>
+                        <p className="text-sm text-neon-blue/70 mb-4 font-mono">Run the agent script. It will automatically host and serve the beautiful dashboard offline at <span className="text-neon-green font-bold">http://localhost:5000</span>.</p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Linux / macOS */}
@@ -780,7 +819,7 @@ export default function App() {
                              </div>
                              <div className="font-mono text-sm text-white flex items-center gap-2">
                                <ArrowRight size={14} className="text-neon-green shrink-0" />
-                               <span className="whitespace-nowrap">python3 p4nth0m_agent.py</span>
+                               <span className="whitespace-nowrap select-all">python3 p4nth0m_agent.py</span>
                              </div>
                           </div>
 
@@ -794,7 +833,7 @@ export default function App() {
                              </div>
                              <div className="font-mono text-sm text-white flex items-center gap-2">
                                <ArrowRight size={14} className="text-neon-green shrink-0" />
-                               <span className="whitespace-nowrap">python p4nth0m_agent.py</span>
+                               <span className="whitespace-nowrap select-all">python p4nth0m_agent.py</span>
                              </div>
                           </div>
                         </div>
