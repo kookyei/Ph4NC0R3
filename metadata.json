@@ -1,0 +1,6 @@
+{
+  "name": "P4NTH0MC0R3",
+  "description": "A web interface for interacting with a local Python Wi-Fi agent, now powered by Gemini AI to analyze the network environment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
