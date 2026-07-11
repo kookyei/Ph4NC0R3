@@ -1,4 +1,7 @@
+const fs = require('fs');
 
+// We need a clean App.tsx that just works.
+let code = `
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Terminal, Wifi, Shield, ShieldAlert, ShieldCheck, Activity, Cpu, Server, Lock, Unlock, Database, Globe, RefreshCw, Layers } from 'lucide-react';
@@ -41,7 +44,7 @@ export default function App() {
   const socketRef = useRef<Socket | null>(null);
   
   // Use relative path for all API calls to match the local Express/Python server
-  const API_BASE = 'http://127.0.0.1:5000';
+  const API_BASE = '';
 
   useEffect(() => {
     // Connect to the local server
@@ -70,7 +73,7 @@ export default function App() {
 
   const fetchServerStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/status`);
+      const response = await fetch(\`\${API_BASE}/api/status\`);
       if (response.ok) {
         const data = await response.json();
         setBackendVersion(data.version);
@@ -82,7 +85,7 @@ export default function App() {
 
   const fetchAdapters = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/adapters`);
+      const response = await fetch(\`\${API_BASE}/api/adapters\`);
       if (response.ok) {
         const data = await response.json();
         setAdapters(data.adapters);
@@ -98,7 +101,7 @@ export default function App() {
   const handleAdapterSelect = async (id: string) => {
     setSelectedAdapter(id);
     try {
-      await fetch(`${API_BASE}/api/adapter/select`, {
+      await fetch(\`\${API_BASE}/api/adapter/select\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adapter: id })
@@ -112,7 +115,7 @@ export default function App() {
   const handleScan = async () => {
     setIsScanning(true);
     try {
-      await fetch(`${API_BASE}/api/scan`, {
+      await fetch(\`\${API_BASE}/api/scan\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bg_only: false })
@@ -131,7 +134,7 @@ export default function App() {
     setConnectMessage('Attempting to connect...');
     
     try {
-      const res = await fetch(`${API_BASE}/api/connect`, {
+      const res = await fetch(\`\${API_BASE}/api/connect\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +153,7 @@ export default function App() {
           setConnectMessage('');
         }, 2000);
       } else {
-        setConnectMessage(`Failed: ${data.message}`);
+        setConnectMessage(\`Failed: \${data.message}\`);
       }
     } catch (e) {
       setConnectMessage('Error connecting to network');
@@ -199,13 +202,13 @@ export default function App() {
           <div className="flex gap-4">
             <button 
               onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 uppercase text-xs tracking-widest transition-colors ${activeTab === 'dashboard' ? 'bg-green-900/40 text-green-400 border border-green-500/30' : 'text-green-700 hover:text-green-500'}`}
+              className={\`px-4 py-2 uppercase text-xs tracking-widest transition-colors \${activeTab === 'dashboard' ? 'bg-green-900/40 text-green-400 border border-green-500/30' : 'text-green-700 hover:text-green-500'}\`}
             >
               Dashboard
             </button>
             <button 
               onClick={() => setActiveTab('setup')}
-              className={`px-4 py-2 uppercase text-xs tracking-widest transition-colors ${activeTab === 'setup' ? 'bg-green-900/40 text-green-400 border border-green-500/30' : 'text-green-700 hover:text-green-500'}`}
+              className={\`px-4 py-2 uppercase text-xs tracking-widest transition-colors \${activeTab === 'setup' ? 'bg-green-900/40 text-green-400 border border-green-500/30' : 'text-green-700 hover:text-green-500'}\`}
             >
               Agent Setup
             </button>
@@ -220,7 +223,7 @@ export default function App() {
               <div className="border border-green-900/50 bg-black/40 p-4">
                 <div className="text-xs text-green-700 mb-2 uppercase tracking-widest">Agent Link</div>
                 <div className="flex items-center gap-2 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${serverStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
+                  <div className={\`w-2 h-2 rounded-full \${serverStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}\`}></div>
                   {serverStatus === 'connected' ? 'ONLINE' : 'OFFLINE'}
                 </div>
               </div>
@@ -250,7 +253,7 @@ export default function App() {
                   disabled={isScanning}
                   className="bg-green-900/20 hover:bg-green-900/40 border border-green-500/30 p-3 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-5 h-5 ${isScanning ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={\`w-5 h-5 \${isScanning ? 'animate-spin' : ''}\`} />
                 </button>
               </div>
             </div>
@@ -276,15 +279,15 @@ export default function App() {
                     <tbody>
                       {networks.length > 0 ? (
                         networks.map((net, i) => (
-                          <tr key={`${net.bssid}-${i}`} className="border-b border-green-900/20 hover:bg-green-900/10 transition-colors">
+                          <tr key={\`\${net.bssid}-\${i}\`} className="border-b border-green-900/20 hover:bg-green-900/10 transition-colors">
                             <td className="p-3 font-medium text-green-400">{net.ssid || '<HIDDEN>'}</td>
                             <td className="p-3 text-green-600 font-mono text-xs">{net.bssid}</td>
                             <td className="p-3">
                               <div className="flex items-center gap-2">
                                 <div className="w-16 h-1 bg-green-900/30 rounded-full overflow-hidden">
                                   <div 
-                                    className={`h-full ${net.quality > 70 ? 'bg-green-500' : net.quality > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                    style={{ width: `${Math.min(100, Math.max(0, net.quality))}%` }}
+                                    className={\`h-full \${net.quality > 70 ? 'bg-green-500' : net.quality > 40 ? 'bg-yellow-500' : 'bg-red-500'}\`}
+                                    style={{ width: \`\${Math.min(100, Math.max(0, net.quality))}%\` }}
                                   ></div>
                                 </div>
                                 <span className="text-xs text-green-700">{net.signal_level}</span>
@@ -443,7 +446,7 @@ export default function App() {
               </div>
               
               {connectMessage && (
-                <div className={`text-sm p-3 border ${connectMessage.includes('successful') ? 'bg-green-900/20 border-green-500/50 text-green-400' : connectMessage.includes('Failed') || connectMessage.includes('Error') ? 'bg-red-900/20 border-red-500/50 text-red-400' : 'bg-green-900/10 border-green-900/50 text-green-500'}`}>
+                <div className={\`text-sm p-3 border \${connectMessage.includes('successful') ? 'bg-green-900/20 border-green-500/50 text-green-400' : connectMessage.includes('Failed') || connectMessage.includes('Error') ? 'bg-red-900/20 border-red-500/50 text-red-400' : 'bg-green-900/10 border-green-900/50 text-green-500'}\`}>
                   {connectMessage}
                 </div>
               )}
@@ -472,3 +475,6 @@ export default function App() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/App.tsx', code);
