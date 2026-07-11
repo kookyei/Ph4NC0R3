@@ -313,16 +313,13 @@ export default function App() {
   };
 
   const handleDownloadCode = () => {
-    const code = getPythonAgentCode();
-    const blob = new Blob([code], { type: 'text/x-python' });
-    const url = URL.createObjectURL(blob);
+    // Attempt to download the fully compiled/embedded version from the backend
     const a = document.createElement('a');
-    a.href = url;
+    a.href = `${API_BASE}/api/agent/download`;
     a.download = 'p4nth0m_agent.py';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const handleCopyCommand = (os: string) => {

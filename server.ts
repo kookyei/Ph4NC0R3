@@ -53,6 +53,17 @@ ${JSON.stringify(networkData, null, 2)}
     }
   });
 
+  // API route to download the compiled/embedded Python agent script
+  app.get("/api/agent/download", (req, res) => {
+    try {
+      const agentPath = path.join(process.cwd(), "p4nth0m_agent.py");
+      res.download(agentPath, "p4nth0m_agent.py");
+    } catch (err: any) {
+      console.error("Error sending agent file:", err);
+      res.status(500).json({ error: "Failed to download agent script." });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
