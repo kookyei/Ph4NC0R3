@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 import os
 
-try:
-    import eventlet
-    eventlet.monkey_patch()
-    # We don't print anything here so it's clean, or we just keep it simple.
-except Exception:
-    pass
+
 
 
 """
@@ -37,66 +32,6 @@ from typing import List, Dict, Optional, Any
 # ------------------------------------------------------------
 # Self Update Check & Robust Injector
 # ------------------------------------------------------------
-def check_for_self_updates():
-    import urllib.request
-    import hashlib
-    import os
-    import sys
-    print("[*] Checking for updates from GitHub...")
-    url = "https://raw.githubusercontent.com/kookyei/Ph4NC0R3/main/p4nth0m_agent.py"
-    try:
-        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            latest_code_bytes = response.read()
-            
-        latest_code = latest_code_bytes.decode('utf-8', errors='ignore')
-        
-        # Landmark to split on
-        landmark = "# Configuration"
-        if landmark not in latest_code:
-            landmark = "DEFAULT_SCAN_INTERVAL"
-            
-        if landmark in latest_code:
-            # We split the remote code from the landmark onwards
-            parts = latest_code.split(landmark, 1)
-            remote_app_logic = landmark + parts[1]
-            
-            # Read our current file to get the setup block (everything before landmark)
-            current_file = os.path.abspath(__file__)
-            with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
-                current_full_code = f.read()
-                
-            current_setup_block = current_full_code.split(landmark, 1)[0]
-            
-            # Reconstruct the advanced code
-            advanced_code = current_setup_block + remote_app_logic
-            
-            # If the current local file is different from the reconstructed advanced code, update it!
-            if hashlib.sha256(advanced_code.encode('utf-8')).hexdigest() != hashlib.sha256(current_full_code.encode('utf-8')).hexdigest():
-                print("[!] Update found! Downloading and applying with robust enhancements...")
-                with open(current_file, "w", encoding="utf-8") as f:
-                    f.write(advanced_code)
-                print("[+] Update applied successfully. Restarting agent...")
-                os.execv(sys.executable, [sys.executable] + sys.argv)
-            else:
-                print("[+] Agent is up to date.")
-        else:
-            print("[-] Remote update format not recognized. Skipping update.")
-    except Exception as e:
-        print(f"[-] Failed to check for updates: {e}")
-
-
-# ------------------------------------------------------------
-# WSGI/Mature Server Entry Point
-# ------------------------------------------------------------
-# Expose the Flask app object as 'application' or 'app' for WSGI servers
-# e.g., gunicorn -k eventlet -w 1 p4nth0m_agent:app
-
-if __name__ == '__main__':
-
-    check_for_self_updates()
-
-
 def robust_dependency_check():
     import sys
     import subprocess
@@ -104,7 +39,7 @@ def robust_dependency_check():
     
     deps_import_map = {
         "flask": "flask",
-        "eventlet": "eventlet",
+        
         "flask-cors": "flask_cors",
         "flask-socketio": "flask_socketio",
         "werkzeug": "werkzeug"
@@ -168,12 +103,7 @@ def robust_dependency_check():
 robust_dependency_check()
 
 
-try:
-    import eventlet
-    eventlet.monkey_patch()
-    print('[+] Eventlet monkey patched for async web server')
-except ImportError:
-    pass
+
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -993,13 +923,11 @@ if __name__ == '__main__':
     check_dependencies_on_startup()
     
     # Print the local interface URL for the user
-    dashboard_url = "http://localhost:5000"
     print("\n==========================================================================")
     print(" P4NTH0M_AGENT DEPLOYED & ACTIVE")
     print("==========================================================================")
     print(f" [*] Local Telemetry Bridge listening on: {args.host}:{args.port}")
-    print(f" [+] Secure Dashboard Interface: {dashboard_url}")
-    print(" [!] ACTION REQUIRED: Click the link above to access the dashboard.")
+    print(" [!] ACTION REQUIRED: Return to the P4NTH0MC0R3 Web Dashboard in your browser.")
     print("==========================================================================\n")
 
     # Disable flask output entirely
