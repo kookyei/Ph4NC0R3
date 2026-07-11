@@ -111,7 +111,7 @@ def check_dependencies_on_startup():
     
     if missing_tools:
         print(f"[!] WARNING: The following system network tools were not found: {', '.join(missing_tools)}")
-        print("[!] Some advanced Wi-Fi capabilities (scanning, connecting) may be restricted or fallback to simulated data.")
+        print("[!] Advanced Wi-Fi capabilities (scanning, connecting) require real hardware.")
     else:
         print("[+] OS network toolchain is fully operational.")
     print("[+] Initialization sequence complete. Launching core engine...")
@@ -495,95 +495,15 @@ def get_system_adapters() -> List[Dict[str, str]]:
     except Exception as e:
         logger.error(f"Error enumerating adapters: {e}")
     
-    # Always provide at least one simulated adapter as a fallback
-    adapters.append({
-        "id": "sim0",
-        "name": "P4NTH0M Simulated SDR (Fallback)",
-        "mac": "AA:BB:CC:DD:EE:FF",
-        "state": "active"
-    })
     return adapters
 
 # ------------------------------------------------------------
-# Scanning Engine (With simulated fallback)
+# Scanning Engine (Real hardware required)
 # ------------------------------------------------------------
 def scan_networks(adapter_id: Optional[str] = None, force: bool = False) -> List[Dict]:
     if not adapter_id:
-        adapter_id = state.selected_adapter or "sim0"
+        adapter_id = state.selected_adapter
         
-    # If using simulated adapter, or scanning fails, return rich telemetry
-    if adapter_id == "sim0":
-        time.sleep(1.5)  # Simulate scanning latency
-        import random
-        # Seeded deterministic-ish simulated networks
-        simulated = [
-            {
-                "ssid": "P4NTH0MC0R3_SECURE",
-                "bssid": "00:11:22:33:44:55",
-                "signal": 92 + random.randint(-2, 2),
-                "channel": 6,
-                "frequency": 2437,
-                "security": "WPA3-Enterprise",
-                "vendor": "Apple",
-                "clients": 12,
-                "is_vulnerable": False,
-                "vulnerability_type": None
-            },
-            {
-                "ssid": "NETGEAR_FREE_WIFI",
-                "bssid": "A4:B3:C2:D1:E0:F9",
-                "signal": 64 + random.randint(-5, 5),
-                "channel": 1,
-                "frequency": 2412,
-                "security": "WEP (VULNERABLE)",
-                "vendor": "Netgear",
-                "clients": 3,
-                "is_vulnerable": True,
-                "vulnerability_type": "WEP Key Cracking vulnerability detected. Weak initialization vectors (IVs) allow rapid decryption."
-            },
-            {
-                "ssid": "xfinitywifi",
-                "bssid": "00:1A:2B:3C:4D:5E",
-                "signal": 48 + random.randint(-3, 6),
-                "channel": 11,
-                "frequency": 2462,
-                "security": "None (Open)",
-                "vendor": "Cisco",
-                "clients": 24,
-                "is_vulnerable": True,
-                "vulnerability_type": "Open network. Traffic is completely unencrypted and susceptible to active sniffing and sidejacking."
-            },
-            {
-                "ssid": "Office_Corp",
-                "bssid": "00:50:F2:88:99:AA",
-                "signal": 78 + random.randint(-2, 2),
-                "channel": 36,
-                "frequency": 5180,
-                "security": "WPA2-PSK (WPS Active)",
-                "vendor": "Microsoft",
-                "clients": 8,
-                "is_vulnerable": True,
-                "vulnerability_type": "WPS Pin brute-forcing (Pixie-Dust attack) active. Pin can be computed offline in seconds."
-            },
-            {
-                "ssid": "HP-Print-45-LaserJet",
-                "bssid": "FC:3F:DB:11:22:33",
-                "signal": 35 + random.randint(-4, 4),
-                "channel": 6,
-                "frequency": 2437,
-                "security": "WPA2-PSK",
-                "vendor": "Hewlett-Packard",
-                "clients": 1,
-                "is_vulnerable": True,
-                "vulnerability_type": "Wi-Fi Direct printer exploit possible. Allows bypassing corporate firewalls via bridged clients."
-            }
-        ]
-        simulated.sort(key=lambda x: x['signal'], reverse=True)
-        with state._lock:
-            state.networks = simulated
-            state.last_scan = datetime.now()
-        return simulated
-
     # Real scanning
     networks = []
     os_type = platform.system()
@@ -713,11 +633,11 @@ def scan_networks(adapter_id: Optional[str] = None, force: bool = False) -> List
                             "vulnerability_type": "WEP Weak encryption" if "WEP" in security else "Open WiFi" if "NONE" in security.upper() else None
                         })
     except Exception as e:
-        logger.error(f"Error performing physical scan: {e}. Falling back to simulated scan.")
-        return scan_networks("sim0")
+        logger.error(f"Error performing physical scan: {e}. Scan returned no networks.")
+        return []
 
     if not networks:
-        return scan_networks("sim0")
+        return []
         
     networks.sort(key=lambda x: x['signal'], reverse=True)
     with state._lock:
@@ -753,20 +673,6 @@ def scan_ports(ip: str) -> List[int]:
 
 def get_network_details(bssid: str, ssid: str) -> Dict[str, Any]:
     clients = []
-    # Seeded simulated clients
-    sim_clients_pool = [
-        {"ip": "192.168.1.1", "mac": "00:1A:2B:11:11:11", "hostname": "Gateway_Router", "vendor": "Cisco", "os": "Linux Embedded", "active_ports": [80, 443]},
-        {"ip": "192.168.1.104", "mac": "00:11:22:AA:BB:CC", "hostname": "Boss-MacBook-Pro", "vendor": "Apple", "os": "macOS Sequoia", "active_ports": [22]},
-        {"ip": "192.168.1.121", "mac": "00:50:F2:77:88:99", "hostname": "SECURE-NAS", "vendor": "Microsoft", "os": "Windows Server 2022", "active_ports": [445, 3389]},
-        {"ip": "192.168.1.189", "mac": "AA:BB:CC:99:99:99", "hostname": "Simulated_IoT_Cam", "vendor": "Simulated", "os": "FreeRTOS", "active_ports": [23, 80]},
-        {"ip": "192.168.1.15", "mac": "00:0C:29:44:55:66", "hostname": "Dev-Ubuntu-VM", "vendor": "VMware", "os": "Ubuntu 22.04 LTS", "active_ports": [22, 80, 8080]}
-    ]
-    
-    import random
-    # Select a deterministic slice based on SSID hash
-    h = sum(ord(c) for c in ssid) % (len(sim_clients_pool) + 1)
-    h = max(h, 2)  # At least 2 clients
-    clients = sim_clients_pool[:h]
     
     # Try to scan actual ARP cache if connected
     os_type = platform.system()
@@ -1107,14 +1013,14 @@ def connect_to_network():
             message = "Windows connection not implemented in this demo."
         elif os_type == "Linux":
             cmd = f'nmcli dev wifi connect "{ssid}" password "{password}"'
-            if adapter and adapter != "sim0":
+            if adapter:
                 cmd += f' ifname {adapter}'
             subprocess.check_call(cmd, shell=True, timeout=30)
             success = True
             message = f"Connected to {ssid}"
         elif os_type == "Darwin":
             cmd = f'networksetup -setairportnetwork {adapter} "{ssid}" "{password}"'
-            if not adapter or adapter == "sim0":
+            if not adapter:
                 out = subprocess.check_output("networksetup -listallhardwareports", shell=True, text=True)
                 for line in out.splitlines():
                     if "Wi-Fi" in line or "AirPort" in line:
