@@ -348,6 +348,12 @@ def manage_frontend_on_startup(debug_mode=False):
         if is_dist_missing_or_stale(project_dir):
             print("[*] Compiled frontend (dist) is missing or stale. Running 'npm run build'...")
             run_npm_command_with_autofix("npm run build", project_dir)
+            
+            # Verify build success
+            if not os.path.exists(os.path.join(project_dir, 'dist', 'index.html')):
+                print("[-] FATAL: 'npm run build' completed but 'dist/index.html' is missing.")
+                sys.exit(1)
+            print("[+] Frontend build verified and ready.")
         else:
             print("[+] Compiled frontend (dist) is up-to-date. Ready to serve.")
 
