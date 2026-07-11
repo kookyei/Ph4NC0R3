@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+import os
+
+try:
+    import eventlet
+    eventlet.monkey_patch()
+    # We don't print anything here so it's clean, or we just keep it simple.
+except Exception:
+    pass
+
+
 """
 P4nth0mAgent - Advanced Wi-Fi Telemetry & Control Service
 ==========================================================
@@ -13,7 +23,6 @@ Features:
 
 import subprocess
 import platform
-import sys
 import webbrowser
 import argparse
 import logging
